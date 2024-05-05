@@ -8,8 +8,7 @@ class Model {
     constructor() {
         this.model = tf.sequential();
     }
-
-    async train() {
+    async compile() {
         this.model.add(tf.layers.inputLayer({ inputShape: [100, 100, 3] }));
 
         this.model.add(tf.layers.conv2d({ filters: 32, kernelSize: 3, activation: 'relu', padding: 'same' }));
@@ -27,7 +26,9 @@ class Model {
 
         const optimizer = tf.train.adam(0.00005)
         this.model.compile({ optimizer, loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
+    }
 
+    async train() {
         const { images, labels } = await this.loadAndPreprocessData(path.join(__dirname, 'data', 'affectnet-dataset', 'train'));
 
         const uniqueLabels = [...new Set(labels)];
