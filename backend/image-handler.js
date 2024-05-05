@@ -1,9 +1,19 @@
 const path = require('path');
 const fs = require('fs');
-const tf = require('@tensorflow/tfjs-node-gpu');
+const tf = require('@tensorflow/tfjs-node');
+const faceapi = require('@vladmandic/face-api');
+const sharp = require("sharp");
 
 class ImageHandler {
     constructor() {
+        this.optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({
+            minConfidence: 0.4,
+        });
+    }
+
+    async loadDetectionModel() {
+        const modelPath = path.join(__dirname, './models');
+        await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath);
     }
 
     async loadImages(dataPath, test) {
@@ -15,10 +25,7 @@ class ImageHandler {
             throw new Error(`dataset at path "${dataPath}" doesn't exist!`);
         }
 
-        console.log(`Loading images from ${dataPath}`);
-
-        const images = [];
-        const labels = [];
+        const images = []; const labels = [];
 
         const datasetFolderName = test === true ? 'test' : "train";
         let datasetFolderPath = path.join(dataPath, datasetFolderName);
@@ -27,7 +34,7 @@ class ImageHandler {
             datasetFolderPath = path.join(dataPath);
         }
 
-        const labelFolders = ['real', 'deepfake'];
+        const labelFolders = ['real'];
         let startTime = Date.now();
         for (const labelFolder of labelFolders) {
             const labelFolderPath = path.join(datasetFolderPath, labelFolder);
@@ -60,7 +67,6 @@ class ImageHandler {
         const uniqueLabels = [...new Set(labels)];
         console.log("Unique Labels:", uniqueLabels);
         console.log("Label Indices:", uniqueLabels.map((label, index) => `${label}: ${index}`));
-
         return { images, labels };
     }
 
@@ -68,7 +74,64 @@ class ImageHandler {
         const tensor = tf.node.decodeImage(imageBuffer, 3);
         return tensor;
     }
+
+    async cropImage(tensorImg, faceDetectionResult, index) {
+        // Load the original image
+        const buffer = await tf.node.encodeJpeg(tensorImg);
+
+        // Load the original image buffer
+        const image = sharp(buffer);
+
+        // Get the bounding box coordinates
+        const { _x, _y, _width, _height } = faceDetectionResult._box;
+
+        // Crop the image based on the bounding box
+        const croppedImageBuffer = await image
+            .extract({
+                left: Math.floor(_x),
+                top: Math.floor(_y),
+                width: Math.floor(_width),
+                height: Math.floor(_height)
+            })
+            .toBuffer();
+
+        // Resize the cropped image to the target size
+        const resizedImageBuffer = await sharp(croppedImageBuffer)
+            .resize({
+                width: 200,
+                height: 200,
+                fit: 'cover', // Cover mode ensures the image completely fills the target size without black margins
+            })
+            .toBuffer();
+
+        // Save the cropped image to the output folder
+        const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
+        await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
+
+        console.log(`Cropped image saved to ${outputImagePath}`);
+    }
+
+    async detectFace(imgTensor) {
+        const result = await faceapi.detectSingleFace(imgTensor, this.optionsSSDMobileNet);
+        return result
+    }
 }
 
-let imageHandler = new ImageHandler()
-imageHandler.loadImages("./datasets/dataset-4", false);
+async function startHandler() {
+    let imageHandler = new ImageHandler()
+    let data = await imageHandler.loadImages("./datasets/dataset-4", false);
+    imageHandler.loadDetectionModel()
+        .then(async () => {
+            let counter = 0;
+            for (let image of data.images) {
+                console.log("for each")
+                let detectionResult = await imageHandler.detectFace(image);
+                if (detectionResult === undefined) continue;
+                await imageHandler.cropImage(image, detectionResult, counter)
+                counter++;
+            }
+        })
+
+}
+
+startHandler()
