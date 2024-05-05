@@ -7,7 +7,12 @@ const sharp = require("sharp");
 class ImageHandler {
     constructor() {
         this.optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({
-            minConfidence: 0.4,
+            minConfidence: 0.4, // Decreased min confidence threshold to make detection more sensitive
+            maxResults: 1, // Increased max results to detect more faces per image
+            iouThreshold: 0.3, // Default value for IoU threshold
+            scoreThreshold: 0.5, // Decreased score threshold to include more detections with lower confidence
+            minFaceSize: 50, // Decreased min face size to detect smaller faces
+            scoreThresholds: {} // Default score thresholds for different face classes
         });
     }
 
@@ -76,39 +81,43 @@ class ImageHandler {
     }
 
     async cropImage(tensorImg, faceDetectionResult, index) {
-        // Load the original image
-        const buffer = await tf.node.encodeJpeg(tensorImg);
+        try {
+            // Load the original image
+            const buffer = await tf.node.encodeJpeg(tensorImg);
 
-        // Load the original image buffer
-        const image = sharp(buffer);
+            // Load the original image buffer
+            const image = sharp(buffer);
 
-        // Get the bounding box coordinates
-        const { _x, _y, _width, _height } = faceDetectionResult._box;
+            // Get the bounding box coordinates
+            const { _x, _y, _width, _height } = faceDetectionResult._box;
 
-        // Crop the image based on the bounding box
-        const croppedImageBuffer = await image
-            .extract({
-                left: Math.floor(_x),
-                top: Math.floor(_y),
-                width: Math.floor(_width),
-                height: Math.floor(_height)
-            })
-            .toBuffer();
+            // Crop the image based on the bounding box
+            const croppedImageBuffer = await image
+                .extract({
+                    left: Math.floor(_x),
+                    top: Math.floor(_y),
+                    width: Math.floor(_width),
+                    height: Math.floor(_height)
+                })
+                .toBuffer();
 
-        // Resize the cropped image to the target size
-        const resizedImageBuffer = await sharp(croppedImageBuffer)
-            .resize({
-                width: 200,
-                height: 200,
-                fit: 'cover', // Cover mode ensures the image completely fills the target size without black margins
-            })
-            .toBuffer();
+            // Resize the cropped image to the target size
+            const resizedImageBuffer = await sharp(croppedImageBuffer)
+                .resize({
+                    width: 200,
+                    height: 200,
+                    fit: 'cover', // Cover mode ensures the image completely fills the target size without black margins
+                })
+                .toBuffer();
 
-        // Save the cropped image to the output folder
-        const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
-        await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
+            // Save the cropped image to the output folder
+            const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
+            await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
 
-        console.log(`Cropped image saved to ${outputImagePath}`);
+            console.log(`Cropped image saved to ${outputImagePath}`);
+        } catch(error) {
+            console.error(`Error cropping image ${index}: ${error.message}`);
+        }
     }
 
     async detectFace(imgTensor) {
@@ -119,10 +128,10 @@ class ImageHandler {
 
 async function startHandler() {
     let imageHandler = new ImageHandler()
-    let data = await imageHandler.loadImages("./datasets/dataset-4", false);
+    let data = await imageHandler.loadImages("./datasets/dataset-1", false);
     imageHandler.loadDetectionModel()
         .then(async () => {
-            let counter = 0;
+            let counter = 54466;
             for (let image of data.images) {
                 console.log("for each")
                 let detectionResult = await imageHandler.detectFace(image);
@@ -131,7 +140,6 @@ async function startHandler() {
                 counter++;
             }
         })
-
 }
 
 startHandler()
