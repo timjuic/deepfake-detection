@@ -7,12 +7,12 @@ const sharp = require("sharp");
 class ImageHandler {
     constructor() {
         this.optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({
-            minConfidence: 0.4, // Decreased min confidence threshold to make detection more sensitive
-            maxResults: 1, // Increased max results to detect more faces per image
-            iouThreshold: 0.3, // Default value for IoU threshold
-            scoreThreshold: 0.5, // Decreased score threshold to include more detections with lower confidence
-            minFaceSize: 50, // Decreased min face size to detect smaller faces
-            scoreThresholds: {} // Default score thresholds for different face classes
+            minConfidence: 0.4,
+            maxResults: 1,
+            iouThreshold: 0.3,
+            scoreThreshold: 0.5,
+            minFaceSize: 50,
+            scoreThresholds: {}
         });
     }
 
@@ -82,16 +82,12 @@ class ImageHandler {
 
     async cropImage(tensorImg, faceDetectionResult, index) {
         try {
-            // Load the original image
             const buffer = await tf.node.encodeJpeg(tensorImg);
 
-            // Load the original image buffer
             const image = sharp(buffer);
 
-            // Get the bounding box coordinates
             const { _x, _y, _width, _height } = faceDetectionResult._box;
 
-            // Crop the image based on the bounding box
             const croppedImageBuffer = await image
                 .extract({
                     left: Math.floor(_x),
@@ -101,16 +97,14 @@ class ImageHandler {
                 })
                 .toBuffer();
 
-            // Resize the cropped image to the target size
             const resizedImageBuffer = await sharp(croppedImageBuffer)
                 .resize({
                     width: 200,
                     height: 200,
-                    fit: 'cover', // Cover mode ensures the image completely fills the target size without black margins
+                    fit: 'cover',
                 })
                 .toBuffer();
 
-            // Save the cropped image to the output folder
             const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
             await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
 
