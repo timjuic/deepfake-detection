@@ -4,7 +4,7 @@ const tf = require('@tensorflow/tfjs-node');
 const faceapi = require('@vladmandic/face-api');
 const sharp = require("sharp");
 
-class ImageHandler {
+module.exports = class ImageHandler {
     constructor() {
         this.optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({
             minConfidence: 0.4,
@@ -16,12 +16,12 @@ class ImageHandler {
         });
     }
 
-    async loadDetectionModel() {
+    static async loadDetectionModel() {
         const modelPath = path.join(__dirname, './models');
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath);
     }
 
-    async loadImages(dataPath, test) {
+    static async loadImages(dataPath, test = false) {
         if (!dataPath) {
             throw new Error('dataPath is required!');
         }
@@ -75,12 +75,12 @@ class ImageHandler {
         return { images, labels };
     }
 
-    async loadImageToTensor(imageBuffer) {
+    static async loadImageToTensor(imageBuffer) {
         const tensor = tf.node.decodeImage(imageBuffer, 3);
         return tensor;
     }
 
-    async cropImage(tensorImg, faceDetectionResult, index) {
+    static async cropImage(tensorImg, faceDetectionResult, index) {
         try {
             const buffer = await tf.node.encodeJpeg(tensorImg);
 
@@ -114,26 +114,8 @@ class ImageHandler {
         }
     }
 
-    async detectFace(imgTensor) {
+    static async detectFace(imgTensor) {
         const result = await faceapi.detectSingleFace(imgTensor, this.optionsSSDMobileNet);
         return result
     }
 }
-
-async function startHandler() {
-    let imageHandler = new ImageHandler()
-    let data = await imageHandler.loadImages("./datasets/dataset-1", false);
-    imageHandler.loadDetectionModel()
-        .then(async () => {
-            let counter = 54466;
-            for (let image of data.images) {
-                console.log("for each")
-                let detectionResult = await imageHandler.detectFace(image);
-                if (detectionResult === undefined) continue;
-                await imageHandler.cropImage(image, detectionResult, counter)
-                counter++;
-            }
-        })
-}
-
-startHandler()
