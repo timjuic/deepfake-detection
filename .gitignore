@@ -464,5 +464,7 @@ $RECYCLE.BIN/
 
 # Dont version datasets
 datasets/
+training-data/
+training-data.zip
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,intellij,intellij+iml,intellij+all,visualstudiocode,node
