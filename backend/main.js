@@ -1,19 +1,16 @@
-const ImageHandler = require("./image-handler");
+console.log("STARTING PROGRAM")
+
+const Model = require("./model"); // PROBLEM HERE
+console.log("STARTING PROGRAM 2")
 
 
-async function startHandler() {
-    let data = await ImageHandler.loadImages("./datasets/dataset-1", false);
-    ImageHandler.loadDetectionModel()
-        .then(async () => {
-            let counter = 54466;
-            for (let image of data.images) {
-                console.log("for each")
-                let detectionResult = await ImageHandler.detectFace(image);
-                if (detectionResult === undefined) continue;
-                await ImageHandler.cropImage(image, detectionResult, counter)
-                counter++;
-            }
-        })
+async function trainModel(pathToTrainingData) {
+    console.log("STARTING PROGRAM")
+    const model = new Model();
+    console.log("CREATED MODEL INSTANCE")
+    await model.compile();
+    const trainingDataPath = "./training-data"
+    await model.train(pathToTrainingData);
 }
 
-startHandler()
+trainModel()

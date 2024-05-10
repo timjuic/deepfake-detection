@@ -1,18 +1,15 @@
 const tf = require('@tensorflow/tfjs-node');
-const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
 const sharp = require("sharp");
-const {ImageAugmentor} = require("./image-augmentor");
-const {Imag} = require("@tensorflow/tfjs-node");
 const {ImageHandler} = require("./image-handler");
 
-class Model {
+module.exports = class Model {
     constructor() {
         this.model = tf.sequential();
     }
     async compile() {
-        this.model.add(tf.layers.inputLayer({ inputShape: [100, 100, 3] }));
+        console.log("COMPILE STARTED")
+        this.model.add(tf.layers.inputLayer({ inputShape: [200, 200, 3] }));
 
         this.model.add(tf.layers.conv2d({ filters: 32, kernelSize: 3, activation: 'relu', padding: 'same' }));
         this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
@@ -29,6 +26,7 @@ class Model {
 
         const optimizer = tf.train.adam(0.00005)
         this.model.compile({ optimizer, loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
+        console.log("COMPILE FINISHED")
     }
 
     async train(pathToTrainingData) {
@@ -52,7 +50,7 @@ class Model {
             ],
         });
 
-        await this.model.save('file://trained-model-raf');
+        await this.model.save('file://trained-model');
         console.log("Model saved");
     }
 
@@ -75,8 +73,3 @@ class Model {
         }
     }
 }
-
-// Usage:
-const model = new Model();
-model.train(); // To train the model
-// model.load('file://trained-model-raf'); // To load the trained model from file

@@ -39,7 +39,7 @@ module.exports = class ImageHandler {
             datasetFolderPath = path.join(dataPath);
         }
 
-        const labelFolders = ['real'];
+        const labelFolders = ['real', 'deepfake'];
         let startTime = Date.now();
         for (const labelFolder of labelFolders) {
             const labelFolderPath = path.join(datasetFolderPath, labelFolder);
@@ -105,7 +105,7 @@ module.exports = class ImageHandler {
                 })
                 .toBuffer();
 
-            const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
+            const outputImagePath = `./test-images/deepfake/cropped_image${index}.jpg`;
             await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
 
             console.log(`Cropped image saved to ${outputImagePath}`);
