@@ -22,6 +22,7 @@ module.exports = class ImageHandler {
     }
 
     static async loadImages(dataPath, test = false) {
+        console.log(dataPath)
         if (!dataPath) {
             throw new Error('dataPath is required!');
         }

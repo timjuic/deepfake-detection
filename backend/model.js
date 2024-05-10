@@ -1,7 +1,8 @@
 const tf = require('@tensorflow/tfjs-node');
 const path = require('path');
 const sharp = require("sharp");
-const {ImageHandler} = require("./image-handler");
+const ImageHandler = require("./image-handler");
+const BatchedImageHandler = require('./image-handler-iterator');
 
 module.exports = class Model {
     constructor() {
@@ -30,24 +31,20 @@ module.exports = class Model {
     }
 
     async train(pathToTrainingData) {
-        const { images, labels } = await ImageHandler.loadImages(pathToTrainingData)
-        // const { images, labels } = await this.loadAndPreprocessData(path.join(__dirname, 'data', 'affectnet-dataset', 'train'));
-
-        const uniqueLabels = [...new Set(labels)];
-        const ys = tf.oneHot(tf.tensor1d(labels.map(label => uniqueLabels.indexOf(label)), 'int32'), uniqueLabels.length);
-        const xs = tf.stack(images);
+        // Create a dataset using tf.data.generator
+        let batchedImageHandler = new BatchedImageHandler(pathToTrainingData, 128);
+        let dataset = tf.data.generator(() => batchedImageHandler.loadImageGenerator());
+        dataset = dataset.shuffle(500);
+        dataset = dataset.batch(128);
 
         console.log("Started training model...");
-        await this.model.fit(xs, ys, {
+        await this.model.fitDataset(dataset, {
             epochs: 25,
-            validationSplit: 0.1,
-            batchSize: 128,
             verbose: 2,
-            shuffle: true,
             callbacks: [
                 tf.callbacks.earlyStopping({ monitor: 'loss', patience: 5 }),
-                tf.node.tensorBoard('logs'),
-            ],
+                tf.node.tensorBoard('logs')
+            ]
         });
 
         await this.model.save('file://trained-model');
