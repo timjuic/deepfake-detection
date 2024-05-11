@@ -10,35 +10,40 @@ module.exports = class BatchedImageHandler {
         this.labelFolders = ['real', 'deepfake'];
     }
 
-    async *loadImageGenerator() {
+    async loadImageGenerator() {
         const allImagePaths = this.getImagePaths();
         Utils.shuffleArray(allImagePaths);
 
         let imageIndex = 0;
-        while (imageIndex < allImagePaths.length) {
-            console.log(`current img: ${allImagePaths[imageIndex]}`);
-            const batchImagePaths = allImagePaths.slice(imageIndex, imageIndex + this.batchSize);
+        const iterator = {
+            next: async function() {
+                if (imageIndex < allImagePaths.length) {
+                    const batchImagePaths = allImagePaths.slice(imageIndex, imageIndex + this.batchSize);
+                    const xs = tf.stack(await Promise.all(batchImagePaths.map(async imagePath => {
+                        const imageBuffer = fs.readFileSync(imagePath);
+                        return this.loadImageToTensor(imageBuffer);
+                    })));
+                    const ys = tf.oneHot(batchImagePaths.map(imagePath => {
+                        const folder = path.basename(path.dirname(imagePath));
+                        return this.labelFolders.indexOf(folder);
+                    }), 2);
+                    imageIndex += this.batchSize;
+                    console.log(imageIndex)
+                    console.log(xs, ys)
+                    return { xs: xs, ys: ys };
+                } else {
+                    console.log("returning DONE")
+                    return { done: true };
+                }
+            }.bind(this)
+        };
 
-            // Load, process, and yield the batch
-            const xs = tf.stack(await Promise.all(batchImagePaths.map(async imagePath => {
-                const imageBuffer = fs.readFileSync(imagePath);
-                return this.loadImageToTensor(imageBuffer);
-            })));
-
-            const ys = tf.oneHot(batchImagePaths.map(imagePath => {
-                // Derive label from 'real' or 'deepfake' in path
-                const folder = path.basename(path.dirname(imagePath));
-                return this.labelFolders.indexOf(folder);
-            }), 2); // Assuming two labels
-
-            yield { xs, ys };
-
-            imageIndex += this.batchSize;
-        }
+        return Promise.resolve(iterator);
     }
 
+
     getImagePaths() {
-        const allowedExtensions = ['.jpg', '.jpeg', '.png']; // Allowed file extensions
+        const allowedExtensions = ['.jpg', '.jpeg', '.png'];
         const imagePaths = [];
 
         for (const labelFolder of this.labelFolders) {

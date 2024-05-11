@@ -1,24 +1,34 @@
-console.log("STARTING PROGRAM")
-
-const Model = require("./model"); // PROBLEM HERE
-const BatchedImageHandler = require('./image-handler-iterator')
-console.log("STARTING PROGRAM 2")
-
+const Model = require("./model");
+const BatchedImageHandler = require('./image-handler-iterator');
+const ImageHandler = require('./image-handler');
+const Utils = require('./utils');
 
 async function trainModel() {
     console.log("STARTING PROGRAM")
     const model = new Model();
-    console.log("CREATED MODEL INSTANCE")
     await model.compile();
     const trainingDataPath = "./training-data"
-    await model.train(trainingDataPath);
+    const numIterations = 25;
+
+    let allImagePaths = new BatchedImageHandler(trainingDataPath).getImagePaths();
+    Utils.shuffleArray(allImagePaths);
+
+    const pathChunks = splitIntoChunks(allImagePaths, numIterations);
+    console.log(pathChunks)
+
+    for (let i = 0; i < pathChunks.length; i++) {
+        console.log(`Training iteration ${i + 1}/${pathChunks.length}`);
+        await model.trainAtOnce(pathChunks[i], trainingDataPath);
+    }
 }
 
-// function testGetImages() {
-//     let imageHandler = new BatchedImageHandler("./training-data", 64)
-//     imageHandler.getImagePaths();
-// }
-//
-// testGetImages()
+function splitIntoChunks(array, numChunks) {
+    const chunkSize = Math.ceil(array.length / numChunks);
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+}
 
 trainModel()
