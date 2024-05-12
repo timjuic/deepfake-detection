@@ -16,11 +16,15 @@ module.exports = class Model {
         await tf.setBackend('tensorflow');
         this.model.add(tf.layers.inputLayer({ inputShape: [200, 200, 3] }));
 
+        this.model.add(tf.layers.conv2d({ filters: 16, kernelSize: 3, activation: 'relu', padding: 'same' }));
+        this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
         this.model.add(tf.layers.conv2d({ filters: 32, kernelSize: 3, activation: 'relu', padding: 'same' }));
         this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
         this.model.add(tf.layers.conv2d({ filters: 64, kernelSize: 3, activation: 'relu', padding: 'same' }));
         this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
         this.model.add(tf.layers.conv2d({ filters: 128, kernelSize: 3, activation: 'relu', padding: 'same' }));
+        this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
+        this.model.add(tf.layers.conv2d({ filters: 256, kernelSize: 3, activation: 'relu', padding: 'same' }));
         this.model.add(tf.layers.maxPooling2d({ poolSize: 2, strides: 2 }));
 
         this.model.add(tf.layers.flatten());
@@ -29,7 +33,7 @@ module.exports = class Model {
         this.model.add(tf.layers.dropout({ rate: 0.2 }));
         this.model.add(tf.layers.dense({ units: 2, activation: 'softmax' }));
 
-        const optimizer = tf.train.adam(0.00005)
+        const optimizer = tf.train.adam(0.001)
         this.model.compile({ optimizer, loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
         console.log("COMPILE FINISHED")
     }
@@ -64,24 +68,31 @@ module.exports = class Model {
         const { images, labels } = await ImageHandler.loadImagesFromChunks(imagePathChunks, labelFolders);
 
 
-        const uniqueLabels = [...new Set(labels)];
-        const ys = tf.oneHot(tf.tensor1d(labels.map(label => uniqueLabels.indexOf(label)), 'int32'), uniqueLabels.length);
-        const xs = tf.stack(images);
+        let trainModel = async () => {
+            const uniqueLabels = [...new Set(labels)];
+            const ys = tf.oneHot(tf.tensor1d(labels.map(label => uniqueLabels.indexOf(label)), 'int32'), uniqueLabels.length);
+            const xs = tf.stack(images);
 
-        console.log("Started training model...");
-        await this.model.fit(xs, ys, {
-            epochs: 5,
-            validationSplit: 0.1,
-            batchSize: 32,
-            verbose: 2,
-            shuffle: true,
-            callbacks: [
-                tf.callbacks.earlyStopping({ monitor: 'loss', patience: 5 }),
-                tf.node.tensorBoard('logs'),
-            ],
-        });
+            console.log("Started training model...");
+            await this.model.fit(xs, ys, {
+                epochs: 5,
+                validationSplit: 0.2,
+                batchSize: 16,
+                verbose: 2,
+                shuffle: true,
+                callbacks: [
+                    tf.callbacks.earlyStopping({ monitor: 'loss', patience: 5 }),
+                    tf.node.tensorBoard('logs'),
+                ],
+            });
+            await this.model.save('file://trained-model');
+        }
 
-        await this.model.save('file://trained-model');
+        await trainModel();
+        await tf.disposeVariables()
+        images.forEach(image => image.dispose());
+        labels.length = 0;
+
         console.log("Model saved");
     }
 

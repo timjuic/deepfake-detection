@@ -8,7 +8,7 @@ async function trainModel() {
     const model = new Model();
     await model.compile();
     const trainingDataPath = "./training-data"
-    const numIterations = 25;
+    const numIterations = 500;
 
     let allImagePaths = new BatchedImageHandler(trainingDataPath).getImagePaths();
     Utils.shuffleArray(allImagePaths);
