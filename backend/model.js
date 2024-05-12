@@ -101,17 +101,14 @@ module.exports = class Model {
     }
 
 
-    async saveImageToFile(imagePath, outputFolder, normalizedFaceImage) {
-        const imageName = path.basename(imagePath);
-        const outputImagePath = path.join(outputFolder, imageName);
-        tf.setBackend("tensorflow");
+    async predict(tensorImage) {
+        tensorImage = tensorImage.expandDims(0);
 
-        try {
-            const faceImageBuffer = Buffer.from((await tf.node.encodeJpeg(normalizedFaceImage)).buffer);
-            await sharp(faceImageBuffer).toFile(outputImagePath);
-            console.log(`Image saved to ${outputImagePath}`);
-        } catch (error) {
-            console.error(`Error saving image to ${outputImagePath}: ${error.message}`);
-        }
+        const predictions = this.model.predict(tensorImage);
+
+        const predictedClassIndex = predictions.argMax(1).dataSync()[0];
+        const predictedLabel = ['real', 'deepfake'][predictedClassIndex];
+
+        return predictedLabel;
     }
 }
