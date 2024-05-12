@@ -22,6 +22,7 @@ module.exports = class ImageHandler {
     }
 
     static async loadImages(dataPath, test = false) {
+        console.log(dataPath)
         if (!dataPath) {
             throw new Error('dataPath is required!');
         }
@@ -39,7 +40,7 @@ module.exports = class ImageHandler {
             datasetFolderPath = path.join(dataPath);
         }
 
-        const labelFolders = ['real'];
+        const labelFolders = ['real', 'deepfake'];
         let startTime = Date.now();
         for (const labelFolder of labelFolders) {
             const labelFolderPath = path.join(datasetFolderPath, labelFolder);
@@ -75,6 +76,40 @@ module.exports = class ImageHandler {
         return { images, labels };
     }
 
+    static async loadImagesFromChunks(imagePaths, labelFolders) {
+        if (!Array.isArray(imagePaths)) {
+            throw new Error('imageChunks must be an array!');
+        }
+
+        const images = [];
+        const labels = [];
+
+        let startTime = Date.now();
+        for (const imagePath of imagePaths) {
+                try {
+                    const imageBuffer = fs.readFileSync(imagePath);
+                    const tensorImage = await this.loadImageToTensor(imageBuffer);
+                    images.push(tensorImage);
+
+                    const folderName = path.basename(path.dirname(imagePath));
+                    const labelIndex = labelFolders.indexOf(folderName);
+                    labels.push(labelIndex);
+                } catch (error) {
+                    console.warn(`Skipping ${imagePath} - Error: ${error.message}`);
+                }
+            }
+        let endTime = Date.now();
+
+        console.log(`Loaded ${images.length} images in ${endTime - startTime} ms`);
+
+        const uniqueLabels = [...new Set(labels)];
+        console.log("Unique Labels:", uniqueLabels);
+        console.log("Label Indices:", uniqueLabels.map((label, index) => `${label}: ${index}`));
+
+        return { images, labels };
+    }
+
+
     static async loadImageToTensor(imageBuffer) {
         const tensor = tf.node.decodeImage(imageBuffer, 3);
         return tensor;
@@ -105,7 +140,7 @@ module.exports = class ImageHandler {
                 })
                 .toBuffer();
 
-            const outputImagePath = `./test-images/real/cropped_image${index}.jpg`;
+            const outputImagePath = `./test-images/deepfake/cropped_image${index}.jpg`;
             await fs.promises.writeFile(outputImagePath, resizedImageBuffer);
 
             console.log(`Cropped image saved to ${outputImagePath}`);
