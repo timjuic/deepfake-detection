@@ -1,3 +1,5 @@
+/* Preuzeto sa: https://codepen.io/Szeviva/pen/MWeGoza*/
+
 @keyframes move_wave {
     0% {
         transform: translateX(0) translateZ(0) scaleY(1)
