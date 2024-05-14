@@ -464,6 +464,7 @@ $RECYCLE.BIN/
 
 # Dont version datasets
 datasets/
+datasets.zip
 training-data/
 training-data.zip
 

@@ -1,19 +1,34 @@
-const ImageHandler = require("./image-handler");
+const Model = require("./model");
+const BatchedImageHandler = require('./image-handler-iterator');
+const ImageHandler = require('./image-handler');
+const Utils = require('./utils');
 
+async function trainModel() {
+    console.log("STARTING PROGRAM")
+    const model = new Model();
+    await model.compile();
+    const trainingDataPath = "./training-data"
+    const numIterations = 500;
 
-async function startHandler() {
-    let data = await ImageHandler.loadImages("./datasets/dataset-1", false);
-    ImageHandler.loadDetectionModel()
-        .then(async () => {
-            let counter = 54466;
-            for (let image of data.images) {
-                console.log("for each")
-                let detectionResult = await ImageHandler.detectFace(image);
-                if (detectionResult === undefined) continue;
-                await ImageHandler.cropImage(image, detectionResult, counter)
-                counter++;
-            }
-        })
+    let allImagePaths = new BatchedImageHandler(trainingDataPath).getImagePaths();
+    Utils.shuffleArray(allImagePaths);
+
+    const pathChunks = splitIntoChunks(allImagePaths, numIterations);
+    console.log(pathChunks)
+
+    for (let i = 0; i < pathChunks.length; i++) {
+        console.log(`Training iteration ${i + 1}/${pathChunks.length}`);
+        await model.trainAtOnce(pathChunks[i], trainingDataPath);
+    }
 }
 
-startHandler()
+function splitIntoChunks(array, numChunks) {
+    const chunkSize = Math.ceil(array.length / numChunks);
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+}
+
+trainModel()

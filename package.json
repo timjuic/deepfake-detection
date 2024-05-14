@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^4.18.0",
+    "@tensorflow/tfjs-node": "^4.19.0",
     "@tensorflow/tfjs-node-gpu": "^4.19.0",
     "@vladmandic/face-api": "^1.7.13",
     "csv-parser": "^3.0.0",
