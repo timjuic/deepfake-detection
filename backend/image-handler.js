@@ -115,7 +115,7 @@ module.exports = class ImageHandler {
         return tensor;
     }
 
-    static async cropImage(tensorImg, faceDetectionResult, index) {
+    static async cropAndSaveImage(tensorImg, faceDetectionResult, index) {
         try {
             const buffer = await tf.node.encodeJpeg(tensorImg);
 
@@ -146,6 +146,38 @@ module.exports = class ImageHandler {
             console.log(`Cropped image saved to ${outputImagePath}`);
         } catch(error) {
             console.error(`Error cropping image ${index}: ${error.message}`);
+        }
+    }
+
+    static async cropImage(tensorImg, faceDetectionResult) {
+        try {
+            const buffer = await tf.node.encodeJpeg(tensorImg);
+            const image = sharp(buffer);
+            const { _x, _y, _width, _height } = faceDetectionResult._box;
+
+            const croppedImageBuffer = await image
+                .extract({
+                    left: Math.floor(_x),
+                    top: Math.floor(_y),
+                    width: Math.floor(_width),
+                    height: Math.floor(_height)
+                })
+                .toBuffer();
+
+            const resizedImageBuffer = await sharp(croppedImageBuffer)
+                .resize({
+                    width: 200,
+                    height: 200,
+                    fit: 'cover',
+                })
+                .toBuffer();
+
+            const resizedTensorImage = tf.node.decodeImage(resizedImageBuffer);
+
+            return resizedTensorImage;
+        } catch(error) {
+            console.error(`Error cropping image: ${error.message}`);
+            return null;
         }
     }
 
