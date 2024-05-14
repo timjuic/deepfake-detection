@@ -3,6 +3,8 @@ const path = require('path');
 const port = 8050;
 const server = express();
 
+const model = require('./model');
+
 server.use(express.json());
 server.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -17,13 +19,21 @@ server.post('/upload-image', async (zahtjev, odgovor) =>{
       
           if(detektirajLice != undefined){
                 await ImageHandler.cropImage(slikaTensor, detektirajLice);
+                await model.load('./trained-model');
 
-                //treniranje modela, predviđanje
-   
+                var result = await model.predict(slikaTensor);
+            
+                if(result == 'real'){
+                    odgovor.status(200).json({
+                        success: true,
+                        message: 'Real' 
+                    });
+                }
+
                 odgovor.status(200).json({
-                  success: true,
-                  message: 'OK' }
-                );
+                    success: true,
+                    message: 'DeepFake' 
+                });
           }
       
           odgovor.status(400).json({
