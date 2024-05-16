@@ -1,0 +1,81 @@
+html, body {
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: white;
+    overflow: auto;
+}
+
+.center-container {
+    position: absolute;
+    top: 12%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 20;
+}
+
+.center-container h1 {
+    font-family: 'Montserrat';
+    font-size: 3em;
+    color: white;
+}
+
+.center-container input[type="file"] {
+    padding: 10px 20px;
+    font-size: 1em;
+    color: white;
+    background-color: rgba(206, 67, 173, 0.1);
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    padding: 5px;
+}
+
+.center-container input[type="file"]::file-selector-button {
+    background-color: #86377b;
+    font-weight: bold;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color .3s ease;
+}
+
+.center-container input[type="file"]:disabled::file-selector-button {
+    background-color: #54626F;
+    font-weight: bold;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: default;
+    transition: background-color .3s ease;
+}
+
+.image-container {
+    position: absolute;
+    top: calc(12% + 110px);
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 20;
+}
+
+.image-container img {
+    max-height: 600px;
+    width: auto;
+    max-width: 90%;
+    display: block;
+    margin: auto;
+}
+
+.image-container p {
+    font-family: 'Montserrat';
+    font-weight: bold;
+    font-size: 1.5em;
+    background-color: rgba(39, 39, 60, 0.15);
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    padding: 10px 20px 10px 20px;
+}
