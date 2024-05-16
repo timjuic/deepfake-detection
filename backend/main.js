@@ -8,18 +8,11 @@ async function trainModel() {
     const model = new Model();
     await model.compile();
     const trainingDataPath = "./training-data"
-    const numIterations = 500;
 
     let allImagePaths = new BatchedImageHandler(trainingDataPath).getImagePaths();
     Utils.shuffleArray(allImagePaths);
 
-    const pathChunks = splitIntoChunks(allImagePaths, numIterations);
-    console.log(pathChunks)
-
-    for (let i = 0; i < pathChunks.length; i++) {
-        console.log(`Training iteration ${i + 1}/${pathChunks.length}`);
-        await model.trainAtOnce(pathChunks[i], trainingDataPath);
-    }
+    await model.trainAtOnce(allImagePaths, trainingDataPath);
 }
 
 function splitIntoChunks(array, numChunks) {
